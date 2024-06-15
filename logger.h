@@ -9,8 +9,7 @@
 #include <string>
 #include <locale>
 #include <codecvt>
-#pragma warning(push)
-#pragma warning(disable : 4267)
+
 enum Level {
 	LOG_DEBUG, LOG_INFO, LOG_WARN, LOG_ERROR
 };
@@ -64,7 +63,7 @@ private:
 				if (buffer[currentTail].ready.load(std::memory_order_acquire)) {
 					DWORD written;
 					// Write UTF-8 text to file
-					WriteFile(hFile, buffer[currentTail].message.c_str(), buffer[currentTail].message.size(), &written, NULL);
+					WriteFile(hFile, buffer[currentTail].message.c_str(), static_cast<DWORD>(buffer[currentTail].message.size()), &written, NULL);
 					buffer[currentTail].ready.store(false, std::memory_order_release);
 					currentTail = (currentTail + 1) % BUFFER_SIZE;
 					tail.store(currentTail, std::memory_order_release);
@@ -149,7 +148,6 @@ public:
 		logf(LOG_ERROR, format, args...);
 	}
 };
-#pragma warning(pop)
 
 //#include "Logger.h"
 //
@@ -168,4 +166,3 @@ public:
 //
 //	return 0;
 //}
-
