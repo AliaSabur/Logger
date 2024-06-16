@@ -8,7 +8,7 @@
 
 int main() {
 	// 创建 Logger 对象，指定日志文件名和日志级别
-	Logger myLogger(LOG_INFO, _T("example_log.log"));
+	Logger myLogger(LOG_INFO, "example_log.log");
 
 	// 使用不同的日志级别记录消息
 	myLogger.log(LOG_INFO, _T("This is an info message."));
