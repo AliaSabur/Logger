@@ -40,13 +40,6 @@ private:
 	std::atomic<bool> running{ true };
 	std::mutex fileMutex;
 
-	// Private constructor to prevent direct instantiation
-	Logger();
-
-	// Deleted copy constructor and assignment operator to prevent copying
-	Logger(const Logger&) = delete;
-	Logger& operator=(const Logger&) = delete;
-
 	static DWORD WINAPI ThreadFunc(void* data);
 	const char* levelToString(Level level) const;
 	void processLogQueue();
@@ -57,8 +50,12 @@ private:
 	std::string currentTime() const;
 
 public:
-	// Static method to get the singleton instance
-	static Logger& GetInstance();
+	// Public constructor to allow multiple instances
+	Logger();
+
+	// Deleted copy constructor and assignment operator to prevent copying
+	Logger(const Logger&) = delete;
+	Logger& operator=(const Logger&) = delete;
 
 	// Initialization function
 	bool Init(Level lvl, const char* logDirectory, const char* logFileNamePrefix, RotationKind rotation);
@@ -99,15 +96,6 @@ public:
 	template<typename... Args>
 	void error_utf8(const char* format, Args... args);
 };
-
-// logger.cpp
-#include "logger.h"
-
-// Static member initialization
-Logger& Logger::GetInstance() {
-	static Logger instance;
-	return instance;
-}
 
 Logger::Logger()
 	: buffer(BUFFER_SIZE), hFile(INVALID_HANDLE_VALUE), logThread(NULL) {
