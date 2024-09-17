@@ -1,24 +1,36 @@
 # Logger
-一个高性能，无锁的 VC++ 的日志类
+A high-performance, lock-free logging class in VC++.
 
-# 使用示例
+# Example usage
 
 ```cpp
-#include "Logger.h"
+// Example usage:
+
+// main.cpp
+#include "logger.h"
 
 int main() {
-	// 创建 Logger 对象，指定日志文件名和日志级别
-	Logger myLogger(LOG_INFO, "example_log.log");
+    // Get the logger instance
+    Logger& myLogger = Logger::GetInstance();
 
-	// 使用不同的日志级别记录消息
-	myLogger.log(LOG_INFO, "This is an info message.");
-	myLogger.log(LOG_WARN, "This is a warning message.");
-	myLogger.log(LOG_ERROR, "This is an error message.");
+    // Initialize the logger
+    if (!myLogger.Init(LOG_DEBUG, "logs", "app", ROTATE_DAILY)) {
+        fprintf(stderr, "Failed to initialize logger.\n");
+        return 1;
+    }
 
-	// 使用格式化日志功能
-	myLogger.logf(LOG_DEBUG, L"Logging %d + %d = %d", 1, 2, 3);
-	myLogger.logf(LOG_INFO, L"Current user is %s", L"John Doe");
+    // Log messages with different levels
+    myLogger.debug(L"Debug message: %d", 42);
+    myLogger.info(L"Info message: %s", L"Sample Info");
+    myLogger.warn(L"Warning message");
+    myLogger.error(L"Error message");
 
-	return 0;
+    // Log UTF-8 messages directly
+    myLogger.info_utf8("UTF-8 Info message: %s", "Sample UTF-8 Info");
+
+    // Allow some time for the background thread to process logs
+    Sleep(100);
+
+    return 0;
 }
 ```
