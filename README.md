@@ -1,6 +1,10 @@
 # Logger
 A high-performance, lock-free logging class in VC++.
 
+## Compilation
+
+Please use a compiler that supports the **C++20** standard.
+
 # Example usage
 
 ```cpp
