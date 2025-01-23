@@ -20,7 +20,7 @@ int main() {
 
     // Initialize the logger with the desired level, directory, file prefix, and rotation strategy
     // This example logs INFO/WARN/ERROR (DEBUG is ignored) and rotates daily
-    if (!logger.Init(loggingutils::LOG_INFO, "logs", "myapp", loggingutils::ROTATE_DAILY)) {
+    if (!logger.init(loggingutils::LOG_INFO, "logs", "myapp", loggingutils::ROTATE_DAILY)) {
         fprintf(stderr, "Failed to initialize logger.\n");
         return -1;
     }
