@@ -11,6 +11,7 @@ Please use a compiler that supports the **C++20** standard.
 // Example usage:
 
 // main.cpp
+#include <windows.h>
 #include <cstdio>
 #include "logger.h"
 
