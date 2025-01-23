@@ -89,7 +89,7 @@ namespace loggingutils {
         Logger& operator=(const Logger&) = delete;
 
         // Initialization: can be called multiple times; it will call finalize() first if already running
-        inline bool Init(Level lvl, const char* logDirectory, const char* logFileNamePrefix, RotationKind rotation);
+        inline bool init(Level lvl, const char* logDirectory, const char* logFileNamePrefix, RotationKind rotation);
 
         // Manual cleanup: stops the thread, flushes and closes the file
         inline void finalize();
@@ -136,8 +136,8 @@ namespace loggingutils {
 
     inline Logger::Logger()
         : buffer(BUFFER_SIZE),
-          hFile(INVALID_HANDLE_VALUE),
-          logThread(NULL)
+        hFile(INVALID_HANDLE_VALUE),
+        logThread(NULL)
     {
         level = LOG_DEBUG;
         rotationKind = ROTATE_NEVER;
@@ -146,7 +146,7 @@ namespace loggingutils {
         GetLocalTime(&lastRotationTime);
     }
 
-    inline bool Logger::Init(Level lvl, const char* logDirectory, const char* logFileNamePrefix, RotationKind rotation) {
+    inline bool Logger::init(Level lvl, const char* logDirectory, const char* logFileNamePrefix, RotationKind rotation) {
         // If already running, finalize it to allow re-init
         if (running) {
             finalize();
@@ -173,7 +173,8 @@ namespace loggingutils {
 
     inline void Logger::finalize() {
         // If already stopped, return
-        if (!running.exchange(false)) {
+        bool wasRunning = running.exchange(false, std::memory_order_acq_rel);
+        if (!wasRunning) {
             return;
         }
         // Wait for worker thread to exit
@@ -201,7 +202,7 @@ namespace loggingutils {
     }
 
     inline void Logger::processLogQueue() {
-        while (running) {
+        while (running.load(std::memory_order_acquire)) {
             auto currentTail = tail.load(std::memory_order_acquire);
             while (currentTail != head.load(std::memory_order_acquire)) {
                 if (buffer[currentTail].ready.load(std::memory_order_acquire)) {
@@ -248,27 +249,27 @@ namespace loggingutils {
         switch (rotationKind) {
         case ROTATE_MINUTELY:
             if (currentTime.wMinute != lastRotationTime.wMinute ||
-                currentTime.wHour   != lastRotationTime.wHour   ||
-                currentTime.wDay    != lastRotationTime.wDay    ||
-                currentTime.wMonth  != lastRotationTime.wMonth  ||
-                currentTime.wYear   != lastRotationTime.wYear)
+                currentTime.wHour != lastRotationTime.wHour ||
+                currentTime.wDay != lastRotationTime.wDay ||
+                currentTime.wMonth != lastRotationTime.wMonth ||
+                currentTime.wYear != lastRotationTime.wYear)
             {
                 shouldRotate = true;
             }
             break;
         case ROTATE_HOURLY:
-            if (currentTime.wHour  != lastRotationTime.wHour  ||
-                currentTime.wDay   != lastRotationTime.wDay   ||
+            if (currentTime.wHour != lastRotationTime.wHour ||
+                currentTime.wDay != lastRotationTime.wDay ||
                 currentTime.wMonth != lastRotationTime.wMonth ||
-                currentTime.wYear  != lastRotationTime.wYear)
+                currentTime.wYear != lastRotationTime.wYear)
             {
                 shouldRotate = true;
             }
             break;
         case ROTATE_DAILY:
-            if (currentTime.wDay   != lastRotationTime.wDay   ||
+            if (currentTime.wDay != lastRotationTime.wDay ||
                 currentTime.wMonth != lastRotationTime.wMonth ||
-                currentTime.wYear  != lastRotationTime.wYear)
+                currentTime.wYear != lastRotationTime.wYear)
             {
                 shouldRotate = true;
             }
@@ -306,7 +307,8 @@ namespace loggingutils {
         );
         if (hFile == INVALID_HANDLE_VALUE) {
             fprintf(stderr, "[Logger] Failed to open log file: %s\n", fullPath);
-        } else {
+        }
+        else {
             SetFilePointer(hFile, 0, NULL, FILE_END);
         }
     }
@@ -316,17 +318,17 @@ namespace loggingutils {
         switch (rotationKind) {
         case ROTATE_MINUTELY:
             sprintf_s(timestamp, "%04u%02u%02u_%02u%02u",
-                      time.wYear, time.wMonth, time.wDay,
-                      time.wHour, time.wMinute);
+                time.wYear, time.wMonth, time.wDay,
+                time.wHour, time.wMinute);
             break;
         case ROTATE_HOURLY:
             sprintf_s(timestamp, "%04u%02u%02u_%02u",
-                      time.wYear, time.wMonth, time.wDay,
-                      time.wHour);
+                time.wYear, time.wMonth, time.wDay,
+                time.wHour);
             break;
         case ROTATE_DAILY:
             sprintf_s(timestamp, "%04u%02u%02u",
-                      time.wYear, time.wMonth, time.wDay);
+                time.wYear, time.wMonth, time.wDay);
             break;
         case ROTATE_NEVER:
         default:
@@ -336,7 +338,8 @@ namespace loggingutils {
 
         if (rotationKind != ROTATE_NEVER) {
             sprintf_s(fullPath, MAX_PATH * 2, "%s\\%s_%s.log", logDir, logFileName, timestamp);
-        } else {
+        }
+        else {
             sprintf_s(fullPath, MAX_PATH * 2, "%s\\%s.log", logDir, logFileName);
         }
     }
@@ -378,16 +381,17 @@ namespace loggingutils {
         LONG totalBias = tzInfo.Bias;
         if (tzState == TIME_ZONE_ID_DAYLIGHT) {
             totalBias += tzInfo.DaylightBias;
-        } else if (tzState == TIME_ZONE_ID_STANDARD) {
+        }
+        else if (tzState == TIME_ZONE_ID_STANDARD) {
             totalBias += tzInfo.StandardBias;
         }
 
         LONG offsetMinutes = -totalBias;
-        LONG offsetHours   = offsetMinutes / 60;
-        LONG offsetMins    = offsetMinutes % 60;
+        LONG offsetHours = offsetMinutes / 60;
+        LONG offsetMins = offsetMinutes % 60;
 
         LONG absOffsetHours = std::abs(offsetHours);
-        LONG absOffsetMins  = std::abs(offsetMins);
+        LONG absOffsetMins = std::abs(offsetMins);
 
         char buffer[128] = { 0 };
         sprintf_s(

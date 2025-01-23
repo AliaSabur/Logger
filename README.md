@@ -31,6 +31,8 @@ int main() {
     logger.warn_utf8("Warning example: code=%d", 123);
     logger.error(L"Some error occurred: code=%d", 999);
 
+    Sleep(3000);
+
     // Optionally, manually finalize
     // If not called, the destructor will automatically finalize the logger
     logger.finalize();
